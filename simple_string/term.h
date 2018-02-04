@@ -72,7 +72,7 @@ public:
    const term& operator[] ( size_t i ) const
       { return pntr -> subterms[i]; }
 
-#if 1
+#if 0
    // Wrong versions, should not be used: 
 
    std::string& getnode( ) 
