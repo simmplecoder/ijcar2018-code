@@ -1,0 +1,73 @@
+fol subst( const fol& f, const std::string& var, const term& val )
+{
+   return try_in_sequence(
+      [&f,&var,&val]( ) {  
+         auto a = f. try_atom( );
+         for( size_t i = 0; i < a. sub. size( ); ++ i )
+            a. assign( i, subst( a.sub[i], var, val )); 
+         return fol( std::move(a));
+      },
+      [&f,&var,&val]( ) 
+      {  fol::equality e = f. try_equality( );
+         e. assign( 0, subst( e[0], var, val ));
+         e. assign( 1, subst( e[1], var, val )); 
+         return fol( std::move(e) ); 
+      }, 
+      [&f,&var,&val]( ) 
+      {  const auto& n = f. try_nullary( ); 
+         return f;
+      },
+      [&f,&var,&val]( ) 
+      {  fol::unary u = f. try_unary( );
+         u. assign( 0, subst( u[0], var, val ));
+         return fol( std::move(u) );
+      },
+      [&f,&var,&val]( )
+      {   
+         fol::binary b = f. try_binary( );
+         b. assign( 0, subst( b[0], var, val ));
+         b. assign( 1, subst( b[1], var, val )); 
+         return fol( std::move(b)); 
+      },
+      [&f,&var,&val]( ) 
+      {
+         fol::quant q = f. try_quant( );
+
+         // Easy case: var does not occur in f:
+         // Writing this test everywhere, would not be an optimization,
+         // because we already use CPR.
+ 
+         if( !isfree( var, f ))
+            return f;
+ 
+         if( !isfree( q. var, val ))
+         {
+            // No capture.
+
+            q. assign_body( subst( q. body( ), var, val ));
+            return fol( std::move(q));
+         }
+         else
+         {
+            std::string fresh =  ... get a fresh variable. 
+
+            q. assign_body( subst( q. body( ), q. var, term( fresh )));
+            q. var = fresh;
+
+            // Finally, we can do what we already wanted to do so long,
+            // with the body of the formula. 
+
+            q. assign_body( subst( q. body( ), var, val ));
+
+            return fol( std::move( q ));
+         }
+      },
+      [&f,&var,&val]( ) 
+      { 
+         throw std::runtime_error( "in <<, could not match" ); 
+                     return f; 
+      }
+   );
+}
+
+
